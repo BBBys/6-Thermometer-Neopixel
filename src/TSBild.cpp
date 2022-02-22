@@ -16,10 +16,10 @@
  * @param nZeilen 
  * @param sBild 
  */
-void Bild(Adafruit_NeoPixel *pNeoPixels, unsigned int nSpalten, unsigned int nZeilen, String sBild[])
+void Bild(Adafruit_NeoPixel *pNeoPixels, uint8_t nSpalten, uint8_t nZeilen, String sBild[])
 {
-    const int nz = 10, ns = 6;
-    const int idx[nz][ns] =
+    const uint8_t nz = 10, ns = 6;
+    const uint8_t idx[nz][ns] =
         {
             {9, 19, 29, 39, 49, 59},
             {8, 18, 28, 38, 48, 58},
@@ -32,15 +32,15 @@ void Bild(Adafruit_NeoPixel *pNeoPixels, unsigned int nSpalten, unsigned int nZe
             {1, 11, 21, 31, 41, 51},
             {0, 10, 20, 30, 40, 50}};
     // Serial.println("Bild");
-    for (size_t i = 0; i < nZeilen; i++)
+    for (uint8_t i = 0; i < nZeilen; i++)
     {
         // Serial.printf("i=%d ",i);
         char z[nSpalten+1];  // warum steht hier +1? aber anders geht es nicht
         sBild[i].toCharArray(z, nSpalten+1);
-        for (size_t j = 0; j < nSpalten; j++)
+        for (uint8_t  j = 0; j < nSpalten; j++)
         {
             // Serial.printf("j=%d\n",j);
-            int p;
+            uint8_t p;
             p = idx[i][j];
             // Serial.printf("p=%d\n",p);
             switch (z[j])

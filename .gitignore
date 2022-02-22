@@ -1,9 +1,6 @@
-.pio
-.vscode/.browse.c_cpp.db*
-.vscode/c_cpp_properties.json
-.vscode/launch.json
-.vscode/ipch
+.vscode
 privat.*
+.pio
 
 # Prerequisites
 *.d
@@ -38,7 +35,19 @@ privat.*
 *.out
 *.app
 *.bak
-.vscode/extensions.json
 *.idx
 *.CDR
 *.cdr
+CodeSize.txt
+.pio/build/myrelease/.sconsign37.dblite
+.pio/build/myrelease/firmware.bin
+.pio/build/myrelease/firmware.elf
+.vscode/c_cpp_properties.json
+.vscode/extensions.json
+.vscode/launch.json
+.pio/build/myrelease/.sconsign37.dblite
+.pio/build/myrelease/firmware.bin
+.pio/build/myrelease/firmware.elf
+.vscode/c_cpp_properties.json
+.vscode/extensions.json
+.vscode/launch.json

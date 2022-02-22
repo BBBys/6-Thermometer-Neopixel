@@ -55,10 +55,11 @@ enum Temps
     tHzR,
     nTemps
 };
-void Bild(Adafruit_NeoPixel *pixels, unsigned int spalten, unsigned int zeilen, String bitmap[]);
+void Bild(Adafruit_NeoPixel *pixels, uint8_t spalten, uint8_t zeilen, String bitmap[]);
 void Anzeigen();
 void cbWartezeit();
 void cbBlink(HueFarben_t pFarbton);
 void flip();
 double dmap(double x, double in_min, double in_max, double out_min, double out_max);
+
 #endif

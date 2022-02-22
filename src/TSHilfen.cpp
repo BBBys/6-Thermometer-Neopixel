@@ -7,9 +7,9 @@
  * @copyright Copyright (c) 2022 B. Borys
  */
 #include "TempStatus.h"
-int nFlip = 0;
-// extern const int nStrips;
-extern int nStrips;
+uint8_t nFlip = 0;
+// extern const uint8_t nStrips;
+extern uint8_t nStrips;
 extern Adafruit_NeoPixel pixels;
 extern Ticker Zeitgeber;
 extern float Temp[nTemps];
@@ -19,20 +19,21 @@ extern float Temp[nTemps];
  * @param pNummer Nummer des Strips, 0...(nStrips-1), jeder hat iNUMPIXELS (10) LEDs
  * @param pTemp Temperatur, °C
  */
-void AnzeigenI(int pNummer, float pTemp)
+void AnzeigenI(uint8_t pNummer, float pTemp)
 { /// Bereiche Innen
     const float iBLAUBIS = 18.0;
     const float iGRUENAB = 19.75;
     const float iGRUENBIS = 21.25;
     const float iROTAB = 26.0;
     /// Anzeigebereich, niedrighste und höchste Temperatur, die aufgelöst wird
-    const int iTMIN = (+17), iTMAX = (+27);
+    const uint8_t iTMIN = (+17), iTMAX = (+27);
     /// Zielbereich, der Temperaturbereich wird gespreizt dargestellt
-    const int SOLLMIN = (+19), SOLLMAX = (+22);
+    const uint8_t SOLLMIN = (+19), SOLLMAX = (+22);
     /// Pixel, in denen der Zielbereich dargestellt wird
-    const int PIXMIN = (2), PIXMAX = (iNUMPIXELS - 4);
+    const uint8_t PIXMIN = (2), PIXMAX = (iNUMPIXELS - 4);
     float tBegrenzt, fPixel, dezimalPixel;
-    int intPixel, cFarbton, cRGB;
+    uint8_t intPixel;
+   uint16_t cFarbton, cRGB;
     // Pixel aus
     pixels.fill(0, pNummer * iNUMPIXELS, iNUMPIXELS);
     tBegrenzt = constrain(pTemp, iTMIN, iTMAX);
@@ -55,14 +56,14 @@ void AnzeigenI(int pNummer, float pTemp)
     else
         fPixel = dmap(tBegrenzt, SOLLMAX, iTMAX, PIXMAX, iNUMPIXELS - 1);
 
-    intPixel = (int)fPixel;                  // ganzzahliger Teil, bis zu diesem Pixel wird die Skala gefüllt
+    intPixel = (uint8_t)fPixel;                  // ganzzahliger Teil, bis zu diesem Pixel wird die Skala gefüllt
     dezimalPixel = fPixel - (float)intPixel; // Dezimalstellen, damit wird die Helligkeit des nächst folgenden Pixels eingestellt
     if (intPixel < iNUMPIXELS - 1)
     {
         float fhell;
-        int ihell;
+        uint8_t ihell;
         fhell = 255.0 * dezimalPixel;
-        ihell = (int)(fhell + 0.5);
+        ihell = (uint8_t)(fhell + 0.5);
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, ihell));
         pixels.setPixelColor(pNummer * iNUMPIXELS + intPixel + 1, cRGB);
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255));
@@ -80,7 +81,7 @@ void AnzeigenI(int pNummer, float pTemp)
  * @param pNummer Nummer des Strips, 0...(nStrips-1)
  * @param pTemp Temperatur, °C
  */
-void AnzeigenH(int pNummer, float pTemp, bool loeschen)
+void AnzeigenH(uint8_t pNummer, float pTemp, bool loeschen)
 {
     /// Bereiche Heizung
     const float iBLAUBIS = 30;
@@ -89,20 +90,21 @@ void AnzeigenH(int pNummer, float pTemp, bool loeschen)
     const float iROTAB = 52;
     const float iROTBIS = 53;
     const float iMAGENTAAB = 60;
-    const int iTMIN = (+30);
-    const int iTMAX = (+65);
+    const uint8_t iTMIN = (+30);
+    const uint8_t iTMAX = (+65);
 #ifndef NDEBUG
     Serial.printf("Heizung %f", pTemp);
 #endif
     // uint8_t sat = 255, bright = 75;
     float tBegrenzt, dezimalpixel, fPixel;
-    int intPixel, zielPixel, cFarbton, cRGB;
+    uint8_t intPixel, zielPixel;
+    uint16_t cFarbton, cRGB;
     if(loeschen)pixels.fill(0, pNummer * iNUMPIXELS, iNUMPIXELS);
     tBegrenzt = constrain(pTemp, iTMIN, iTMAX);
     // Serial.println(tBegrenzt);
     fPixel = dmap(tBegrenzt, iTMIN, iTMAX, 0, iNUMPIXELS - 1);
     // Serial.println(fPixel);
-    intPixel = (int)fPixel;                  // ganzzahliger Teil
+    intPixel = (uint8_t)fPixel;                  // ganzzahliger Teil
     dezimalpixel = fPixel - (float)intPixel; // Dezimalstellen
     // Serial.println(intPixel);
     // Serial.println(dezimalpixel);
@@ -123,9 +125,9 @@ void AnzeigenH(int pNummer, float pTemp, bool loeschen)
     if (intPixel < iNUMPIXELS - 1)
     {
         float fhell;
-        int ihell;
+        uint8_t ihell;
         fhell = 255.0 * dezimalpixel;
-        ihell = (int)(fhell + 0.5);
+        ihell = (uint8_t)(fhell + 0.5);
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, ihell));
         pixels.setPixelColor(zielPixel + 1, cRGB);
         ihell = 255 - ihell;
@@ -176,7 +178,7 @@ void cbWartezeit()
  */
 void cbBlink(HueFarben_t pFarbton)
 {
-    int intPixel = (nFlip++) % (iNUMPIXELS * nStrips);
+    uint8_t intPixel = (nFlip++) % (iNUMPIXELS * nStrips);
     pixels.clear(); // Set all pixel colors to 'off'
     pixels.setPixelColor(intPixel, pixels.ColorHSV(pFarbton, 255, 255));
     pixels.show(); // Send the updated pixel colors to the hardware.

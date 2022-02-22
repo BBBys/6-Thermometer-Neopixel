@@ -13,7 +13,7 @@ Ticker Zeitgeber;
 extern EspMQTTClient client;
 
 float Temp[nTemps] = {0, 0, 0, 0, 0, 0, 0};
-int nStrips = nTemps - 1; // Heizung benötigt 2
+uint8_t nStrips = nTemps - 1; // Heizung benötigt 2
 
 /**
  * @brief setting up the NeoPixel library
