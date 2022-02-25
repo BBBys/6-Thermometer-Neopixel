@@ -2,7 +2,7 @@
  * @file TSHilfen.cpp
  * @brief Hilfen für "Temperaturen im ganzen Haus anzeigen"
  * @version 1.2
- * @date 20 19 Feb 29 28 26 14 Jan 2022
+ * @date 25 24 20 19 Feb 29 28 26 14 Jan 2022
  * @author Dr. Burkhard Borys, Zeller Ring 15, 34246 Vellmar, Deutschland
  * @copyright Copyright (c) 2022 B. Borys
  */
@@ -23,7 +23,7 @@ void AnzeigenI(uint8_t pNummer, float pTemp)
 { /// Bereiche Innen
     const float iBLAUBIS = 18.0;
     const float iGRUENAB = 19.75;
-    const float iGRUENBIS = 21.25;
+    const float iGRUENBIS = 21.0;
     const float iROTAB = 26.0;
     /// Anzeigebereich, niedrighste und höchste Temperatur, die aufgelöst wird
     const uint8_t iTMIN = (+17), iTMAX = (+27);
@@ -33,7 +33,8 @@ void AnzeigenI(uint8_t pNummer, float pTemp)
     const uint8_t PIXMIN = (2), PIXMAX = (iNUMPIXELS - 4);
     float tBegrenzt, fPixel, dezimalPixel;
     uint8_t intPixel;
-   uint16_t cFarbton, cRGB;
+    uint16_t cFarbton; 
+    uint32_t cRGB; /// muss 32 Bit sein denn (R,G,B)*8 sind schon 24
     // Pixel aus
     pixels.fill(0, pNummer * iNUMPIXELS, iNUMPIXELS);
     tBegrenzt = constrain(pTemp, iTMIN, iTMAX);
@@ -44,30 +45,39 @@ void AnzeigenI(uint8_t pNummer, float pTemp)
     if (pTemp < iBLAUBIS)
         cFarbton = HUEBLAU; // noch kälter: blau
     if (pTemp > iGRUENBIS)
-        cFarbton = dmap(pTemp, iGRUENBIS, iROTAB, HUEGELBLICHGRUEN, HUEROT); // wärmer als grün: grün ... gelb bis rot
-    if (pTemp > iROTAB)
+        cFarbton = dmap(pTemp, iGRUENBIS, iROTAB, HUEGRUEN, HUEROT); // wärmer als grün: grün ... gelb bis rot
+    if (pTemp > iROTAB) 
         cFarbton = HUEROT; // noch wärmer: rot
 
     /// Umrechnung der Temperatur auf nichtlineare Skala
-    if (pTemp < SOLLMIN)
-        fPixel = dmap(tBegrenzt, iTMIN, SOLLMIN, 0, PIXMIN);
-    else if (pTemp < SOLLMAX)
-        fPixel = dmap(tBegrenzt, SOLLMIN, SOLLMAX, PIXMIN, PIXMAX);
-    else
-        fPixel = dmap(tBegrenzt, SOLLMAX, iTMAX, PIXMAX, iNUMPIXELS - 1);
+    if (pTemp < SOLLMIN)                                                  // Temperatur bis 19
+        fPixel = dmap(tBegrenzt, iTMIN, SOLLMIN, 0, PIXMIN);                // Pixel von 0.0 bis 2.0
+    else if (pTemp < SOLLMAX)                                             // Temperatur von 19 bis 22
+        fPixel = dmap(tBegrenzt, SOLLMIN, SOLLMAX, PIXMIN, PIXMAX);         // Pixel von 2.0 bis 6.0
+    else                                                                  // Temperatur ab 22
+        fPixel = dmap(tBegrenzt, SOLLMAX, iTMAX, PIXMAX, iNUMPIXELS - 1);   // Pixel von 6.0 bis 9.0
 
     intPixel = (uint8_t)fPixel;                  // ganzzahliger Teil, bis zu diesem Pixel wird die Skala gefüllt
     dezimalPixel = fPixel - (float)intPixel; // Dezimalstellen, damit wird die Helligkeit des nächst folgenden Pixels eingestellt
-    if (intPixel < iNUMPIXELS - 1)
+#ifndef NDEBUG
+    Serial.printf("Temp=%f fp=%f ip=%d dp=%f\n",pTemp, fPixel, intPixel, dezimalPixel);
+#endif
+    if (intPixel < iNUMPIXELS - 1) //
     {
         float fhell;
         uint8_t ihell;
         fhell = 255.0 * dezimalPixel;
         ihell = (uint8_t)(fhell + 0.5);
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, ihell));
-        pixels.setPixelColor(pNummer * iNUMPIXELS + intPixel + 1, cRGB);
+        pixels.setPixelColor(pNummer * iNUMPIXELS + intPixel, cRGB);
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255));
-        pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel + 1);
+        if(intPixel>0)
+        pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel ); ///@note oder +1?
+        else
+        pixels.setPixelColor(pNummer * iNUMPIXELS, cRGB); // ist so richtig
+#ifndef NDEBUG
+        Serial.printf("Temp=%f Farbe=%d RGB=%06x\n", pTemp, cFarbton,cRGB);
+#endif
     }
     else // wenn wir ganz oben angekommen sind
     {
@@ -84,9 +94,9 @@ void AnzeigenI(uint8_t pNummer, float pTemp)
 void AnzeigenH(uint8_t pNummer, float pTemp, bool loeschen)
 {
     /// Bereiche Heizung
-    const float iBLAUBIS = 30;
-    const float iGRUENAB = 42;
-    const float iGRUENBIS = 43;
+    const float iBLAUBIS = 31;
+    const float iGRUENAB = 40;
+    const float iGRUENBIS = 41;
     const float iROTAB = 52;
     const float iROTBIS = 53;
     const float iMAGENTAAB = 60;
@@ -97,17 +107,16 @@ void AnzeigenH(uint8_t pNummer, float pTemp, bool loeschen)
 #endif
     // uint8_t sat = 255, bright = 75;
     float tBegrenzt, dezimalpixel, fPixel;
-    uint8_t intPixel, zielPixel;
-    uint16_t cFarbton, cRGB;
-    if(loeschen)pixels.fill(0, pNummer * iNUMPIXELS, iNUMPIXELS);
+    uint8_t intPixel;
+    uint16_t cFarbton;
+    uint32_t cRGB;
+    if (loeschen)
+        pixels.fill(0, pNummer * iNUMPIXELS, iNUMPIXELS);
     tBegrenzt = constrain(pTemp, iTMIN, iTMAX);
     // Serial.println(tBegrenzt);
     fPixel = dmap(tBegrenzt, iTMIN, iTMAX, 0, iNUMPIXELS - 1);
-    // Serial.println(fPixel);
     intPixel = (uint8_t)fPixel;                  // ganzzahliger Teil
     dezimalpixel = fPixel - (float)intPixel; // Dezimalstellen
-    // Serial.println(intPixel);
-    // Serial.println(dezimalpixel);
     cFarbton = HUEGRUEN; // grün
     if (pTemp < iGRUENAB)
         cFarbton = dmap(pTemp, iBLAUBIS, iGRUENAB, HUEBLAU, HUEGRUEN); // blau bis grün
@@ -121,7 +130,6 @@ void AnzeigenH(uint8_t pNummer, float pTemp, bool loeschen)
         cFarbton = dmap(pTemp, iROTBIS, iMAGENTAAB, HUEROT2, HUEMAGENTA); 
     if (pTemp > iMAGENTAAB)
         cFarbton = HUEMAGENTA; 
-    zielPixel = intPixel + pNummer * iNUMPIXELS;
     if (intPixel < iNUMPIXELS - 1)
     {
         float fhell;
@@ -129,21 +137,18 @@ void AnzeigenH(uint8_t pNummer, float pTemp, bool loeschen)
         fhell = 255.0 * dezimalpixel;
         ihell = (uint8_t)(fhell + 0.5);
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, ihell));
-        pixels.setPixelColor(zielPixel + 1, cRGB);
-        ihell = 255 - ihell;
-        // cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, ihell));
+        pixels.setPixelColor(pNummer * iNUMPIXELS + intPixel, cRGB);
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255));
-        // pixels.setPixelColor(zielPixel, cRGB);
-        pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel + 1);
+        if (intPixel > 0)
+            pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel); ///@note oder +1?
+        else
+            pixels.setPixelColor(pNummer * iNUMPIXELS, cRGB); // ist so richtig
     }
     else
     {
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255));
-        // pixels.setPixelColor(zielPixel, cRGB);
         pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel + 1);
     }
-    // Serial.println(cFarbton);
-    // Serial.println(intPixel);
 }
 
 void Anzeigen()

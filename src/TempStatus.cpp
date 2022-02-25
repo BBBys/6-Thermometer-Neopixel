@@ -2,7 +2,7 @@
  * @file TempStatus.cpp
  * @brief Temperaturen im ganzen Haus anzeigen
  * @version 1.2
- * @date 20 Feb 15 14 13 Jan 2022
+ * @date 24 20 Feb 15 14 13 Jan 2022
  * @author Dr. Burkhard Borys, Zeller Ring 15, 34246 Vellmar, Deutschland
  * @copyright Copyright (c) 2022 B. Borys
  * Info zu Neopixel: https://learn.adafruit.com/adafruit-neopixel-uberguide/
@@ -27,7 +27,7 @@ void setup() {
       "......",
       "..rr..",
       ".rwwr.",
-      "rwwwwr",
+      ".rwwr.",
       ".rwwr.",
       "..rr..",
       "......",
