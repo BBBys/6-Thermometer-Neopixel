@@ -1,14 +1,13 @@
 /**
  * @file TSHilfen.cpp
  * @brief Hilfen für "Temperaturen im ganzen Haus anzeigen"
- * @version 1.2
- * @date 25 24 20 19 Feb 29 28 26 14 Jan 2022
+ * @version 1.3
+ * @date 26 25 24 20 19 Feb 29 28 26 14 Jan 2022
  * @author Dr. Burkhard Borys, Zeller Ring 15, 34246 Vellmar, Deutschland
  * @copyright Copyright (c) 2022 B. Borys
  */
 #include "TempStatus.h"
 uint8_t nFlip = 0;
-// extern const uint8_t nStrips;
 extern uint8_t nStrips;
 extern Adafruit_NeoPixel pixels;
 extern Ticker Zeitgeber;
@@ -20,7 +19,7 @@ extern float Temp[nTemps];
  * @param pTemp Temperatur, °C
  */
 void AnzeigenI(uint8_t pNummer, float pTemp)
-{ /// Bereiche Innen
+{
     const float iBLAUBIS = 18.0;
     const float iGRUENAB = 19.75;
     const float iGRUENBIS = 21.0;
@@ -33,7 +32,7 @@ void AnzeigenI(uint8_t pNummer, float pTemp)
     const uint8_t PIXMIN = (2), PIXMAX = (iNUMPIXELS - 4);
     float tBegrenzt, fPixel, dezimalPixel;
     uint8_t intPixel;
-    uint16_t cFarbton; 
+    uint16_t cFarbton;
     uint32_t cRGB; /// muss 32 Bit sein denn (R,G,B)*8 sind schon 24
     // Pixel aus
     pixels.fill(0, pNummer * iNUMPIXELS, iNUMPIXELS);
@@ -46,21 +45,18 @@ void AnzeigenI(uint8_t pNummer, float pTemp)
         cFarbton = HUEBLAU; // noch kälter: blau
     if (pTemp > iGRUENBIS)
         cFarbton = dmap(pTemp, iGRUENBIS, iROTAB, HUEGRUEN, HUEROT); // wärmer als grün: grün ... gelb bis rot
-    if (pTemp > iROTAB) 
+    if (pTemp > iROTAB)
         cFarbton = HUEROT; // noch wärmer: rot
-
-    /// Umrechnung der Temperatur auf nichtlineare Skala
     if (pTemp < SOLLMIN)                                                  // Temperatur bis 19
-        fPixel = dmap(tBegrenzt, iTMIN, SOLLMIN, 0, PIXMIN);                // Pixel von 0.0 bis 2.0
+        fPixel = dmap(tBegrenzt, iTMIN, SOLLMIN, 0, PIXMIN);              // Pixel von 0.0 bis 2.0
     else if (pTemp < SOLLMAX)                                             // Temperatur von 19 bis 22
-        fPixel = dmap(tBegrenzt, SOLLMIN, SOLLMAX, PIXMIN, PIXMAX);         // Pixel von 2.0 bis 6.0
+        fPixel = dmap(tBegrenzt, SOLLMIN, SOLLMAX, PIXMIN, PIXMAX);       // Pixel von 2.0 bis 6.0
     else                                                                  // Temperatur ab 22
-        fPixel = dmap(tBegrenzt, SOLLMAX, iTMAX, PIXMAX, iNUMPIXELS - 1);   // Pixel von 6.0 bis 9.0
-
-    intPixel = (uint8_t)fPixel;                  // ganzzahliger Teil, bis zu diesem Pixel wird die Skala gefüllt
+        fPixel = dmap(tBegrenzt, SOLLMAX, iTMAX, PIXMAX, iNUMPIXELS - 1); // Pixel von 6.0 bis 9.0
+    intPixel = (uint8_t)fPixel;              // ganzzahliger Teil, bis zu diesem Pixel wird die Skala gefüllt
     dezimalPixel = fPixel - (float)intPixel; // Dezimalstellen, damit wird die Helligkeit des nächst folgenden Pixels eingestellt
 #ifndef NDEBUG
-    Serial.printf("Temp=%f fp=%f ip=%d dp=%f\n",pTemp, fPixel, intPixel, dezimalPixel);
+    Serial.printf("Temp=%f fp=%f ip=%d dp=%f\n", pTemp, fPixel, intPixel, dezimalPixel);
 #endif
     if (intPixel < iNUMPIXELS - 1) //
     {
@@ -71,12 +67,12 @@ void AnzeigenI(uint8_t pNummer, float pTemp)
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, ihell));
         pixels.setPixelColor(pNummer * iNUMPIXELS + intPixel, cRGB);
         cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255));
-        if(intPixel>0)
-        pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel ); ///@note oder +1?
+        if (intPixel > 0)
+            pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel); ///@note oder +1?
         else
-        pixels.setPixelColor(pNummer * iNUMPIXELS, cRGB); // ist so richtig
+            pixels.setPixelColor(pNummer * iNUMPIXELS, cRGB); // ist so richtig
 #ifndef NDEBUG
-        Serial.printf("Temp=%f Farbe=%d RGB=%06x\n", pTemp, cFarbton,cRGB);
+        Serial.printf("Temp=%f Farbe=%d RGB=%06x\n", pTemp, cFarbton, cRGB);
 #endif
     }
     else // wenn wir ganz oben angekommen sind
@@ -85,13 +81,15 @@ void AnzeigenI(uint8_t pNummer, float pTemp)
         pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel + 1);
     }
 }
+
 /**
  * @brief Heizungstemperatur auf einem Strip anzeigen
  *
  * @param pNummer Nummer des Strips, 0...(nStrips-1)
- * @param pTemp Temperatur, °C
+ * @param pTempV Vorlauftemperatur, °C
+ * @param pTempR Rücklauftemperatur, °C
  */
-void AnzeigenH(uint8_t pNummer, float pTemp, bool loeschen)
+void Anzeigen2H(uint8_t pNummer, float pTempV, float pTempR)
 {
     /// Bereiche Heizung
     const float iBLAUBIS = 31;
@@ -101,53 +99,57 @@ void AnzeigenH(uint8_t pNummer, float pTemp, bool loeschen)
     const float iROTBIS = 53;
     const float iMAGENTAAB = 60;
     const uint8_t iTMIN = (+30);
-    const uint8_t iTMAX = (+65);
+    const uint8_t iTMAX = (+70);
 #ifndef NDEBUG
-    Serial.printf("Heizung %f", pTemp);
+    Serial.printf("Heizung %f, %f;", pTempV, pTempR);
 #endif
     // uint8_t sat = 255, bright = 75;
-    float tBegrenzt, dezimalpixel, fPixel;
-    uint8_t intPixel;
-    uint16_t cFarbton;
-    uint32_t cRGB;
-    if (loeschen)
-        pixels.fill(0, pNummer * iNUMPIXELS, iNUMPIXELS);
-    tBegrenzt = constrain(pTemp, iTMIN, iTMAX);
+    float tBegrenzt[2];
+    pixels.fill(0, pNummer * iNUMPIXELS, iNUMPIXELS);
+    tBegrenzt[0] = constrain(pTempV, iTMIN, iTMAX);
+    tBegrenzt[1] = constrain(pTempR, iTMIN, iTMAX);
     // Serial.println(tBegrenzt);
-    fPixel = dmap(tBegrenzt, iTMIN, iTMAX, 0, iNUMPIXELS - 1);
-    intPixel = (uint8_t)fPixel;                  // ganzzahliger Teil
-    dezimalpixel = fPixel - (float)intPixel; // Dezimalstellen
-    cFarbton = HUEGRUEN; // grün
-    if (pTemp < iGRUENAB)
-        cFarbton = dmap(pTemp, iBLAUBIS, iGRUENAB, HUEBLAU, HUEGRUEN); // blau bis grün
-    if (pTemp < iBLAUBIS)
-        cFarbton = HUEBLAU; // blau
-    if (pTemp > iGRUENBIS)
-        cFarbton = dmap(pTemp, iGRUENBIS, iROTAB, HUEGRUEN, HUEROT); // grün bis rot
-    if (pTemp > iROTAB)
-        cFarbton = HUEROT; // rot
-    if (pTemp > iROTBIS)
-        cFarbton = dmap(pTemp, iROTBIS, iMAGENTAAB, HUEROT2, HUEMAGENTA); 
-    if (pTemp > iMAGENTAAB)
-        cFarbton = HUEMAGENTA; 
-    if (intPixel < iNUMPIXELS - 1)
+    for (size_t i = 0; i < 2; i++)
     {
-        float fhell;
-        uint8_t ihell;
-        fhell = 255.0 * dezimalpixel;
-        ihell = (uint8_t)(fhell + 0.5);
-        cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, ihell));
-        pixels.setPixelColor(pNummer * iNUMPIXELS + intPixel, cRGB);
-        cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255));
-        if (intPixel > 0)
-            pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel); ///@note oder +1?
+        uint8_t intPixel;
+        float dezimalpixel, fPixel;
+        uint16_t cFarbton;
+        uint32_t cRGB;
+        fPixel = dmap(tBegrenzt[i], iTMIN, iTMAX, 0, iNUMPIXELS - 1);
+        intPixel = (uint8_t)fPixel;              // ganzzahliger Teil
+        dezimalpixel = fPixel - (float)intPixel; // Dezimalstellen
+#ifndef NDEBUG
+        Serial.printf("begrenzt %f\nfPixel=%f,intPixel=%d,dezimal=%f\n",tBegrenzt[i], fPixel,intPixel,dezimalpixel);
+#endif
+        cFarbton = HUEGRUEN; // grün
+        if (tBegrenzt[i] < iGRUENAB)
+            cFarbton = dmap(tBegrenzt[i], iBLAUBIS, iGRUENAB, HUEBLAU, HUEGRUEN); // blau bis grün
+        if (tBegrenzt[i] < iBLAUBIS)
+            cFarbton = HUEBLAU; // blau
+        if (tBegrenzt[i] > iGRUENBIS)
+            cFarbton = dmap(tBegrenzt[i], iGRUENBIS, iROTAB, HUEGRUEN, HUEROT); // grün bis rot
+        if (tBegrenzt[i] > iROTAB)
+            cFarbton = HUEROT; // rot
+        if (tBegrenzt[i] > iROTBIS)
+            cFarbton = dmap(tBegrenzt[i], iROTBIS, iMAGENTAAB, HUEROT2, HUEMAGENTA);
+        if (tBegrenzt[i] > iMAGENTAAB)
+            cFarbton = HUEMAGENTA;
+        if (intPixel < iNUMPIXELS - 1)
+        {
+            float fhell;
+            uint8_t ihell;
+            fhell = 255.0 * dezimalpixel;
+            ihell = (uint8_t)(fhell + 0.5);
+            cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, ihell));
+            pixels.setPixelColor(pNummer * iNUMPIXELS + intPixel+1, cRGB);
+            cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255-ihell));
+            pixels.setPixelColor(pNummer * iNUMPIXELS+intPixel, cRGB); // ist so richtig
+        }
         else
-            pixels.setPixelColor(pNummer * iNUMPIXELS, cRGB); // ist so richtig
-    }
-    else
-    {
-        cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255));
-        pixels.fill(cRGB, pNummer * iNUMPIXELS, intPixel + 1);
+        {
+            cRGB = pixels.gamma32(pixels.ColorHSV(cFarbton, 255, 255));
+            pixels.setPixelColor(pNummer * iNUMPIXELS + intPixel , cRGB); // ist so richtig
+        }
     }
 }
 
@@ -160,8 +162,7 @@ void Anzeigen()
     AnzeigenI(tDG, Temp[tDG]);
     AnzeigenI(tJo, Temp[tJo]);
     AnzeigenI(tCl, Temp[tCl]);
-    AnzeigenH(tHzV, Temp[tHzV],true);
-    AnzeigenH(tHzV, Temp[tHzR],false);
+    Anzeigen2H(tHzV, Temp[tHzV], Temp[tHzR]);
     pixels.show();                            // Send the updated pixel colors to the hardware.
     Zeitgeber.attach(WARTEZEIT, cbWartezeit); /// Timeout-Timer starten
 }

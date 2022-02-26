@@ -1,8 +1,8 @@
 /**
  * @file TempStatus.h
  * @brief Temperaturen im ganzen Haus anzeigen
- * @version 1.2
- * @date 20 Feb 29 Jan 2022
+ * @version 1.3
+ * @date 26 20 Feb 29 Jan 2022
  * @author Dr. Burkhard Borys, Zeller Ring 15, 34246 Vellmar, Deutschland
  * @copyright Copyright (c) 2022 B. Borys
  */
@@ -61,5 +61,7 @@ void cbWartezeit();
 void cbBlink(HueFarben_t pFarbton);
 void flip();
 double dmap(double x, double in_min, double in_max, double out_min, double out_max);
+void AnzeigenI(uint8_t pNummer, float pTemp);
+void Anzeigen2H(uint8_t pNummer, float pTempV, float pTempR);
 
 #endif
